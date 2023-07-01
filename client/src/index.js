@@ -21,7 +21,7 @@ root.render(
     <Provider store={store}>
       <BrowserRouter>
       <GoogleOAuthProvider
-                clientId={`ENTER_YOUR_CLIENTID`}>
+                clientId={`60196786882-2lit6r26g4p3f1kh61rjp1rnviisidnj.apps.googleusercontent.com`}>
        <App />
        </GoogleOAuthProvider>
       </BrowserRouter>

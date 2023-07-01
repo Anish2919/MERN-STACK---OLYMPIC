@@ -13,8 +13,9 @@ export const loadUser = () => async (dispath)=>{
 export const signin = (data2, navigate) => async (dispath) =>{
     try{
         const {data} = await api.signIn(data2)
-
+        console.log('data: ', data) 
         dispath({type: AUTH, data})
+        
         navigate("/")
     }catch(err){
         console.log(err);

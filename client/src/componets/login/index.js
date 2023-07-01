@@ -16,7 +16,6 @@ function Login() {
     function handleGoogleLoginSuccess(tokenResponse) {
 
         const accessToken = tokenResponse.access_token;
-
         dispatch(signinGoogle(accessToken,navigate))
     }
     const login = useGoogleLogin({onSuccess: handleGoogleLoginSuccess});
