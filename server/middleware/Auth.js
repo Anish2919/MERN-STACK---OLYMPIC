@@ -2,13 +2,14 @@ const jwt = require("jsonwebtoken")
 const config = require("config"); 
 const User = require("../models/user");
 const Admin = require("../models/admin");
+const otp = require("../models/otp");
 
 
 
  async function AuthorizeUser(req, res, next) {
     try {
         if(!req.headers.authorization) {
-            return res.send({error: "Missing access token!"}); 
+            return res.status(400).send({error: "Missing access token!"}); 
         }
         // split access token from 'Bearer' 
         const token = req.headers.authorization.split(" ")[1];
@@ -19,7 +20,6 @@ const Admin = require("../models/admin");
 
         // getting user details form decoded Token 
         const {email, id} = decodedToken;
-        req.decodedToken;  
         req.email = email; 
         req.id = id; 
 
@@ -30,6 +30,40 @@ const Admin = require("../models/admin");
     }
 }
 
+async function AuthorizeAdmin(req, res, next) {
+    try {
+        const id = req.id;
+        
+        // check if user is admin 
+        const admin = await Admin.findOne({_id:id}); 
+        if(!admin) {
+            return res.status(401).json({errorMessage:'Unauthorized Access'}); 
+        }
+        
+        next(); 
+    } catch(error) {
+        return res.status(500).json({errorMessage: error.message});  
+    }
+}
+
+async function AuthorizeMasterAdmin(req, res, next) {
+    try {
+        const id = req.id;
+        
+        // check if user is admin 
+        const admin = await Admin.findOne({_id:id}); 
+        if(!admin) {
+            return res.status(401).json({errorMessage:'Unauthorized Access'}); 
+        }
+        if(admin.adminRole !== "Master Admin") {
+            return res.status(401).json({errorMessage: 'You are unauthorized to create admin'});
+        }
+        
+        next(); 
+    } catch(error) {
+        return res.status(500).json({errorMessage: error.message});  
+    }
+}
 
 // check availability of the user
 async function CheckUserAvailability(req, res, next) {
@@ -71,8 +105,25 @@ async function checkAdminAvailability(req, res, next) {
     }
 }
 
+async function checkOTPAvailability(req,res,next) {
+    try{
+        const {email, password} = req.body; 
+        const existingOTP = await otp.findOne({email:email}); 
+        if(!existingOTP) {
+            return res.status(400).json({errorMessage:'Bad request.'}); 
+        }
+        next(); 
+    } catch(error) {
+        req.status(500).json({errorMessage:'Internal Server error'}); 
+    }
+}
+
 module.exports = {
     AuthorizeUser, 
     CheckUserAvailability, 
-    checkAdminAvailability, 
+    checkAdminAvailability,
+    checkOTPAvailability, 
+    AuthorizeAdmin,
+    AuthorizeMasterAdmin,
+    
 }

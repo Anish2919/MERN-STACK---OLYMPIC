@@ -18,8 +18,9 @@ const validteSendOTPParams = async(req, res, next) => {
         // validate the send otp params agains the schema
         const {error} = await sentOTPParamsSchema.validate(req.params); 
 
+        console.log(error);
         // if (error) return res.status(400).send({error: error.details[0].message});
-        if(error) return res.status(400).json({errorMessage:'Bad Request'}); 
+        if(error) return res.status(400).json({errorMessage:'Something went wrong. Please check if you have entered correct email and otp'}); 
 
         next(); 
     }   catch(error) {

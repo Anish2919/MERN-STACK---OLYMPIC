@@ -7,6 +7,8 @@ const User = require("../models/user")
 const Token =  require('../models/token'); 
 const {  sendingOTP, verifyOTP } = require("../utils/otpController");
 const { handleVerificationToken } = require("../utils/tokenController");
+const { updatePassword, updateUserPasswordUtils } = require("../utils/utils")
+const otp = require("../models/otp")
 
 
 const signinController = async(req, res) => {
@@ -77,9 +79,14 @@ const signinController = async(req, res) => {
             }, config.get("JWT_SECRET"), {expiresIn: "1h"})
             
             // sending result and token 
+            const result = {
+                email: existingUser.email,
+                firstName:existingUser.firstName, 
+                lastName:existingUser.lastName
+            }
             res
                 .status(200)
-                .json({result: existingUser, token})
+                .json({result: result, token})
         } catch (err) {
             res
                 .status(500)
@@ -91,6 +98,8 @@ const signinController = async(req, res) => {
 const signupController = async(req, res) => {
     if (req.body.googleAccessToken) {
         const {googleAccessToken} = req.body;
+        console.log('google access token'); 
+        console.log(googleAccessToken); 
 
         axios
             .get("https://www.googleapis.com/oauth2/v3/userinfo", {
@@ -118,7 +127,7 @@ const signupController = async(req, res) => {
 
                 res
                     .status(200)
-                    .json({result, token})
+                    .json({result, token,})
             })
             .catch(err => {
                 res
@@ -235,8 +244,11 @@ const sendOTPController = async(req, res) => {
 // verify otp 
 const verifyOTPController = async(req, res) => {
     try {
+        console.log('verify controller')
         const receivedOTP = req.params.otp;
         const email = req.params.email; 
+        console.log('email: ', email); 
+        console.log('otp', receivedOTP);
 
         // verify otp
         await verifyOTP(email, receivedOTP); 
@@ -244,33 +256,96 @@ const verifyOTPController = async(req, res) => {
         return res.status(200).json({message:'OTP verified.'}); 
     } catch(error) {
         if(error.status===400) {
-            console.error(error.message); 
-            return res.status(400).json({errorMessage:'Invalid OTP'})
+            return res.status(400).json({errorMessage:error.message})
         }
         return res.status(500).json({message:'internal server error', errorMessage:error.message}); 
     }
 }
 
+// reset password
 const resetUserPasswordController = async(req, res) => {
     try {
+        console.log('email from reset user password')
         const {email, password} = req.body; 
+        console.log('email: ', email); 
+        console.log('password: ', password);
 
         const user = await User.findOne({email:email});
         if(!user) {
             return res.status(404).json({errorMessage:'User not found!'}); 
         } 
 
+        // check if the reset session is true
+        const userOTPDetails = await otp.findOne({email:email}); 
+        if(!userOTPDetails) {
+            return res.status(400).json({errorMessage:'OTP expired! Reverify OTP'}); 
+        }
+        if(!userOTPDetails.resetSession) {
+            return res.status(400).json({errorMessage:'OTP not verfied. Verify OTP first!'})
+        }
+
         const hashed_password = await bcrypt.hash(password, config.SALT); 
 
         user.password = hashed_password; 
         await user.save(); 
-
+        
+        // after complition change reset session to false. 
+        userOTPDetails.resetSession = false; 
+        userOTPDetails.save(); 
         return res.status(200).json({message:'Password changed successfully'})
+    } catch(error) {
+        return res.status(500).json({errorMessage:error.message}); 
+    }
+}
+
+
+// update profile
+const updateUserDetails = async(req, res) => {
+    try {
+        const {firstName, lastName} = req.body; 
+        const userId = req.id; 
+        
+        // check user
+        const existingUser = await User.findOne({_id:userId}, {password:0}); 
+        if(!existingUser) {
+            return res.status(404).json({errorMessage:'User not fount!'}); 
+        }
+        existingUser.firstName = (firstName) && firstName; 
+
+        if(firstName) {
+            existingUser.firstName = firstName; 
+        }
+        if (lastName)  {
+            existingUser.lastName = lastName;
+        }
+        // if(email) {
+        //     existingUser.email = email; 
+        // }
+
+        await existingUser.save(); 
+        return res.status(200).json({message:'Succesfully updated', result:existingUser})
     } catch(error) {
         return res.status(500).json({message:error.message}); 
     }
 }
 
+
+// update password 
+const updateUserPassword = async(req, res) => {
+    try {
+        const id = req.id; 
+        const {oldPassword, newPassword} = req.body; 
+        if(!oldPassword || !newPassword) {
+            return res.status(400).json({errorMessage:'Old password and new Password is similar'}); 
+        }
+        // update password // utils
+        await updatePassword(id, oldPassword, newPassword, 'user');
+         
+        return res.status(200).json({message:'Succesfully updated'})
+    } catch(error) {
+        return res.status(error.status).json({errorMessage:error.message}); 
+    }
+}
 
 
 
@@ -283,4 +358,6 @@ module.exports = {
     sendOTPController,
     verifyOTPController, 
     resetUserPasswordController, 
+    updateUserDetails, 
+    updateUserPassword, 
 }

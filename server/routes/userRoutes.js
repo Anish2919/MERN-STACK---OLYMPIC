@@ -12,6 +12,10 @@ router.post("/signup", controllers.signupController)
 router.post('/sendOTP', controllers.sendOTPController); // send otp controller
 router.post('/resetPassword',schemaMiddleware.validateSentUserResetPasswordBody, Auth.CheckUserAvailability, controllers.resetUserPasswordController); 
 
+// put request 
+router.put('/updateUserDetails', Auth.AuthorizeUser, controllers.updateUserDetails); // update user details
+router.put('/updatePassword',Auth.AuthorizeUser, controllers.updateUserPassword);  // update password
+
 
 // get request
 router.get('/userInfo', Auth.AuthorizeUser, controllers.getUserDetailsController); // get users 

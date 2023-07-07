@@ -44,9 +44,8 @@ const verifyOTP = async(email, receivedOTP) => {
 
     const existingOTP = await otp.findOne({email:email}); 
     if(!existingOTP  || parseInt(receivedOTP) !== existingOTP.otpCode) {
-        const error = new Error('OTP not available. Please Resend OTP!'); 
+        const error = new Error('Invalid OTP'); 
         error.status = 400; 
-        console.log(error); 
         throw error; 
     }
 
