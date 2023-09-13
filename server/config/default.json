@@ -1,6 +1,6 @@
 {
     "JWT_SECRET":"anythingoverhere8", 
-    "EMAIL": "assignmenttesting2023@gmail.com", 
-    "EMAIL_PASSWORD": "hehcrqzbvgekfopw", 
+    "EMAIL": "",  
+    "EMAIL_PASSWORD": "", 
     "SALT": 12
 }
